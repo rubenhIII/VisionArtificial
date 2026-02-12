@@ -41,8 +41,8 @@ class TransformacionesEuclideanas:
     def transformacion(imagen, M_inv, dsize):
         w,h = dsize
         imagen_transformada = np.zeros((h,w), dtype=imagen.dtype)
-        print(imagen.shape, imagen_transformada.shape)
-        print(h, w)
+        #print(imagen.shape, imagen_transformada.shape)
+        #print(h, w)
         for x in range(w):
             for y in range(h):
                 p_destino_h = np.array([x, y, 1])
@@ -54,8 +54,8 @@ class TransformacionesEuclideanas:
                 #Si está dentro de la imagen original
                 if 0 <= x_origen < w and 0 <= y_origen < h:
                 # Interpolación por vecino más cercano
-                    y_idx = int(round(y_origen))%h
-                    x_idx = int(round(x_origen))%w
+                    y_idx = int(np.floor(y_origen))
+                    x_idx = int(np.floor(x_origen))
                     imagen_transformada[y, x] = imagen[y_idx, x_idx]
         return imagen_transformada
     

@@ -8,9 +8,9 @@ w = int(camara.get(cv2.CAP_PROP_FRAME_WIDTH))
 h = int(camara.get(cv2.CAP_PROP_FRAME_HEIGHT))
 print(f"Imagen {h} x {w}")
 
-centro_x, centro_y = int(round(w/2)), int(round(h/2))
+centro_x, centro_y = int(round(h/2)), int(round(w/2))
 
-R = TransformacionesEuclideanas.rotacion(-np.pi)
+R = TransformacionesEuclideanas.rotacion(-np.pi/4)
 T1 = TransformacionesEuclideanas.traslado(-centro_x, -centro_y)
 T2 = TransformacionesEuclideanas.traslado(centro_x, centro_y)
 
@@ -29,7 +29,7 @@ while camara.isOpened():
         frame = TransformacionesEuclideanas.transformacion(frame, M_inv, (w,h))
         #frame = TransformacionesEuclideanas.transformacion_opencv(frame, T[0:2,:],(w,h))
 
-        #print(frame.shape)
+        print(frame.shape)
         cv2.imshow("Camara", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
