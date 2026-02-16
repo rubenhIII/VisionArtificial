@@ -1,12 +1,41 @@
 import numpy as np
 import cv2
 
-class TransformacionesEuclideanas:
+class TransformacionesAfines:
     @staticmethod
-    def rotacion(angulo):
+    def cizallamiento_horizontal(k=1):
         return np.array([
-            [np.cos(angulo), -np.sin(angulo), 0],
-            [np.sin(angulo), np.cos(angulo), 0],
+            [1.0, k, 0],
+            [0, 1.0, 0],
+            [0, 0, 1.0]
+        ])
+    
+    @staticmethod 
+    def cizallamiento_vertical(k=1):
+        return np.array([
+            [1.0, 0, 0],
+            [k, 1.0, 0],
+            [0, 0, 1.0]
+        ])
+    
+    @staticmethod
+    def dilatacion_no_uniforme(sx, sy):
+        return np.array([
+            [float(sx), 0, 0],
+            [0, float(sy), 0],
+            [0, 0, 1.0]
+        ])
+    
+    @staticmethod
+    def transformacion_opencv(imagen, M, dsize):
+        return cv2.warpAffine(imagen, M, dsize)
+
+class TransformacionesEuclideanas(TransformacionesAfines):
+    @staticmethod
+    def rotacion(angulo, s=1):
+        return np.array([
+            [s*np.cos(angulo), -s*np.sin(angulo), 0],
+            [s*np.sin(angulo), s*np.cos(angulo), 0],
             [0, 0, 1]
         ])
     
@@ -58,6 +87,3 @@ class TransformacionesEuclideanas:
                     x_idx = int(np.floor(x_origen))
                     imagen_transformada[y, x] = imagen[y_idx, x_idx]
         return imagen_transformada
-    
-    def transformacion_opencv(imagen, M, dsize):
-        return cv2.warpAffine(imagen, M, dsize)
