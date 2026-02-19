@@ -14,7 +14,7 @@ def obtener_puntos(imagen_vis):
         "clicks": 0,
         "puntos": []
     }
-    cv2.namedWindow("Imagen")
+    cv2.namedWindow("Imagen", cv2.WINDOW_NORMAL)
     cv2.setMouseCallback("Imagen", detectar_click, param=params)
     while True:
         cv2.imshow("Imagen", imagen_vis)
@@ -26,8 +26,9 @@ def obtener_puntos(imagen_vis):
 
 
 ruta = "Modulo_02/img/lena.jpeg"
-imagen = cv2.imread(ruta, cv2.IMREAD_GRAYSCALE)
-h,w = imagen.shape
+#imagen = cv2.imread(ruta, cv2.IMREAD_GRAYSCALE)
+imagen = cv2.imread(ruta)
+h,w = imagen.shape[0:2]
 
 centro_y, centro_x = int(np.floor(h/2)), int(np.floor(w/2))
 T1 = TransformacionesEuclideanas.traslado(-centro_x, -centro_y)
@@ -35,7 +36,7 @@ T2 = TransformacionesEuclideanas.traslado(centro_x, centro_y)
 
 RN1 = TransformacionesEuclideanas.rotacion(-np.pi/2,1)
 TN1 = TransformacionesEuclideanas.traslado(2, 2)
-CN1 = TransformacionesAfines.cizallamiento_horizontal(1.05)
+CN1 = TransformacionesAfines.cizallamiento_horizontal(1.025)
 
 T = T2 @ TN1 @ CN1 @ RN1 @ T1
 
