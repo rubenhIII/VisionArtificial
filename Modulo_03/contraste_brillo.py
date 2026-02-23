@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 class Ventana(tk.Tk):
     def __init__(self):
-        super().__init__()
+        super().__init__(className="Control de contraste y brillo")
 
         self.title = "Control de contraste y brillo"
         self.geometry("1100x500")
@@ -41,18 +41,15 @@ class Ventana(tk.Tk):
 
         self.mostrar_imagen_procesada(0, 1, 1)
 
-        self.__escala_brillo = tk.Scale(self, label="Brillo", from_=-100, to=100, orient=tk.HORIZONTAL, command=self.actualizar_imagen)
+        self.__escala_brillo = tk.Scale(self, label="Brillo", from_=-100, to=100, variable=tk.IntVar(value=1), orient=tk.HORIZONTAL, command=self.actualizar_imagen)
         self.__escala_contraste = tk.Scale(self, label="Contraste", from_=-1, to=3, orient=tk.HORIZONTAL, resolution=0.05, command=self.actualizar_imagen)
-        self.__escala_gamma = tk.Scale(self, label="Gamma", from_=-2, to=4, orient=tk.HORIZONTAL, resolution=0.05, command=self.actualizar_imagen)
-        self.__escala_contraste.set(1) 
-        self.__escala_gamma.set(1)
+        self.__escala_gamma = tk.Scale(self, label="Gamma", from_=-2, to=4, variable=tk.IntVar(value=1), orient=tk.HORIZONTAL, resolution=0.05, command=self.actualizar_imagen)
         
         self.__escala_brillo.place(x=100, y=250+50)
         self.__escala_contraste.place(x=250 , y=250+50)
         self.__escala_gamma.place(x=100, y=250+120)
 
         self.__canvas_hist = FigureCanvasTkAgg(self.fig, master=self)
-        self.__canvas_hist.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         self.__canvas_hist.get_tk_widget().place(x=550, y=40, width=500, height=400)
         self.mostrar_histograma(self.obtener_v(self.imagen_procesada))
 
@@ -70,7 +67,6 @@ class Ventana(tk.Tk):
         gamma = self.__escala_gamma.get()
         self.mostrar_imagen_procesada(brillo, contraste, gamma)
         self.mostrar_histograma(self.obtener_v(self.imagen_procesada))
-        self.__canvas_hist.draw()
 
     def obtener_v(self, imagen):
         return cv2.cvtColor(imagen, cv2.COLOR_BGR2HSV)[:,:,2]
@@ -125,7 +121,5 @@ class Procesador:
 
 if __name__ == "__main__":
     v = Ventana()
-
     v.mostrar_ventana()
-
     v.mainloop()
