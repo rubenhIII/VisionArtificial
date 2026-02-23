@@ -24,6 +24,8 @@ class Ventana(tk.Tk):
         self.imagen_procesada_tk = ImageTk.PhotoImage(self.imagen_procesada_pl)
 
         self.fig, self.ax = plt.subplots(figsize=(1, 2))
+        self.__check_status = tk.BooleanVar()
+        self.mostrar_ventana()
 
     def cierre(self):
         print("Cerrando ventanas")
@@ -41,8 +43,8 @@ class Ventana(tk.Tk):
 
         self.mostrar_imagen_procesada(0, 1, 1)
 
-        self.__escala_brillo = tk.Scale(self, label="Brillo", from_=-100, to=100, variable=tk.IntVar(value=1), orient=tk.HORIZONTAL, command=self.actualizar_imagen)
-        self.__escala_contraste = tk.Scale(self, label="Contraste", from_=-1, to=3, orient=tk.HORIZONTAL, resolution=0.05, command=self.actualizar_imagen)
+        self.__escala_brillo = tk.Scale(self, label="Brillo", from_=-100, to=100, orient=tk.HORIZONTAL, command=self.actualizar_imagen)
+        self.__escala_contraste = tk.Scale(self, label="Contraste", from_=-1, variable=tk.IntVar(value=1), to=3, orient=tk.HORIZONTAL, resolution=0.05, command=self.actualizar_imagen)
         self.__escala_gamma = tk.Scale(self, label="Gamma", from_=-2, to=4, variable=tk.IntVar(value=1), orient=tk.HORIZONTAL, resolution=0.05, command=self.actualizar_imagen)
         
         self.__escala_brillo.place(x=100, y=250+50)
@@ -53,6 +55,9 @@ class Ventana(tk.Tk):
         self.__canvas_hist.get_tk_widget().place(x=550, y=40, width=500, height=400)
         self.mostrar_histograma(self.obtener_v(self.imagen_procesada))
 
+        self.__canvas_check = tk.Checkbutton(self, text="Ecualizar Histograma", variable=self.__check_status, command=self.actualizar_imagen, onvalue=True)
+        self.__canvas_check.place(x=100, y=250+200)
+
     def mostrar_imagen_procesada(self, brillo, contraste, gamma):
         self.procesar_imagen(contraste, brillo, gamma)
         im = cv2.cvtColor(self.imagen_procesada, cv2.COLOR_BGR2RGB)
@@ -61,7 +66,7 @@ class Ventana(tk.Tk):
         self.__canvas_imagen_proc.create_image(250/2, 250/2, image=self.imagen_procesada_tk)
         self.__canvas_imagen_proc.place(x=250 + 30, y=40)
         
-    def actualizar_imagen(self, val):
+    def actualizar_imagen(self, val=None):
         brillo = self.__escala_brillo.get()
         contraste = self.__escala_contraste.get()
         gamma = self.__escala_gamma.get()
@@ -78,13 +83,14 @@ class Ventana(tk.Tk):
         self.ax.set_ylabel('Frecuencia')
         self.ax.hist(datos.flatten(), bins=256, alpha=0.7, range=(0,255), color='blue', edgecolor='black')
         self.__canvas_hist.draw_idle()
-        
 
     def procesar_imagen(self, contraste, brillo, gamma):
         imagen_color_HSV = cv2.cvtColor(self.imagen, cv2.COLOR_BGR2HSV)
         imagen_v = imagen_color_HSV[:,:,2]
         imagen_color_HSV_procesada = Procesador.contraste_brillo_centrado(imagen_v, contraste, brillo)
         imagen_color_HSV_procesada = Procesador.correccion_gamma(imagen_color_HSV_procesada, gamma)
+        if self.__check_status.get():
+            imagen_color_HSV_procesada = Procesador.ecualizar_hist(imagen_v)
         imagen_color_HSV[:,:,2] = imagen_color_HSV_procesada
         self.imagen_procesada =  cv2.cvtColor(imagen_color_HSV, cv2.COLOR_HSV2BGR)
 
@@ -117,9 +123,12 @@ class Procesador:
         Útil para imágenes muy brillantes.
         """
         return np.clip(((imagen.astype(np.float32)*1/255)**(gamma))*255, 0, 255).astype(np.uint8)
+    
+    @staticmethod
+    def ecualizar_hist(imagen):
+        return cv2.equalizeHist(imagen)
 
 
 if __name__ == "__main__":
     v = Ventana()
-    v.mostrar_ventana()
     v.mainloop()
