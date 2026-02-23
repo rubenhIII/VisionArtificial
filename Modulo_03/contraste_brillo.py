@@ -14,9 +14,10 @@ class Ventana(tk.Tk):
         self.geometry("1100x500")
         self.protocol("WM_DELETE_WINDOW", self.cierre)
 
-        self.ruta_imagen = "Modulo_03/img/lena.jpeg"
-        
+        self.ruta_imagen = "Modulo_03/img/cameraman.png"
+
         self.imagen = cv2.imread(self.ruta_imagen)
+        self.h, self.w = self.imagen.shape[0:2]
         self.imagen_pl = Image.open(self.ruta_imagen)
         self.imagen_tk = ImageTk.PhotoImage(self.imagen_pl)
         self.imagen_procesada = cv2.imread(self.ruta_imagen)
@@ -28,17 +29,16 @@ class Ventana(tk.Tk):
         self.mostrar_ventana()
 
     def cierre(self):
-        print("Cerrando ventanas")
         plt.close("all")
         self.quit()
         self.destroy()
 
     def mostrar_ventana(self):
-        self.__canvas_imagen = tk.Canvas(self, width=250, height=250, background="black")
-        self.__canvas_imagen_proc = tk.Canvas(self, width=250, height=250, background="black")
+        self.__canvas_imagen = tk.Canvas(self, width=self.w, height=self.h, background="black")
+        self.__canvas_imagen_proc = tk.Canvas(self, width=self.w, height=self.h, background="black")
 
         if self.imagen is not None:
-            self.__canvas_imagen.create_image(250/2, 250/2, image=self.imagen_tk)
+            self.__canvas_imagen.create_image(self.w/2, self.h/2, image=self.imagen_tk)
             self.__canvas_imagen.place(x=30, y=40)
 
         self.mostrar_imagen_procesada(0, 1, 1)
@@ -63,7 +63,7 @@ class Ventana(tk.Tk):
         im = cv2.cvtColor(self.imagen_procesada, cv2.COLOR_BGR2RGB)
         self.imagen_procesada_pl = Image.fromarray(im)
         self.imagen_procesada_tk = ImageTk.PhotoImage(self.imagen_procesada_pl)
-        self.__canvas_imagen_proc.create_image(250/2, 250/2, image=self.imagen_procesada_tk)
+        self.__canvas_imagen_proc.create_image(self.w/2, self.h/2, image=self.imagen_procesada_tk)
         self.__canvas_imagen_proc.place(x=250 + 30, y=40)
         
     def actualizar_imagen(self, val=None):
@@ -90,7 +90,7 @@ class Ventana(tk.Tk):
         imagen_color_HSV_procesada = Procesador.contraste_brillo_centrado(imagen_v, contraste, brillo)
         imagen_color_HSV_procesada = Procesador.correccion_gamma(imagen_color_HSV_procesada, gamma)
         if self.__check_status.get():
-            imagen_color_HSV_procesada = Procesador.ecualizar_hist(imagen_v)
+            imagen_color_HSV_procesada = Procesador.ecualizar_hist(imagen_color_HSV_procesada)
         imagen_color_HSV[:,:,2] = imagen_color_HSV_procesada
         self.imagen_procesada =  cv2.cvtColor(imagen_color_HSV, cv2.COLOR_HSV2BGR)
 
