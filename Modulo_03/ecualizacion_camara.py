@@ -3,7 +3,7 @@ import numpy as np
 
 def ecualizar_camara(imagen):
     imagen_yuv = cv2.cvtColor(imagen, cv2.COLOR_BGR2HSV)
-    canal_y = imagen_yuv[:,:,2]
+    canal_y = imagen_yuv[:,:,0]
     canal_y_ecualizado = cv2.equalizeHist(canal_y)
     imagen_yuv[:,:,0] = canal_y_ecualizado
     return cv2.cvtColor(imagen_yuv, cv2.COLOR_HSV2BGR)
