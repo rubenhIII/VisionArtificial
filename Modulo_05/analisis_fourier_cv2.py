@@ -22,10 +22,14 @@ while camara.isOpened():
         # Obtener espectro y mostrarla
         frame_y = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         frame_fft = spectrum(frame_y)
+        
+        # Se normaliza y cambia a tipo uint8. cv2.imshow necesita este formato
+        # de la imagen para mostarlo (de 0 a 255)
         cv2.normalize(frame_fft, frame_fft, 0, 255, cv2.NORM_MINMAX)
         mag = np.uint8(frame_fft)
         
         frame_show = np.hstack((frame_y, mag))
+
 
         cv2.imshow("Camara", frame_show)
         if cv2.waitKey(1) & 0xFF == ord('q'):
