@@ -76,7 +76,7 @@ while video.isOpened():
         # img:  Imagen para debug: Mascara usada en la detección de esquinas o lineas de track
         # frame_col: track de las esquinas con colores
         img = cv2.add(frame, corner_mask)
-        cv2.imshow("Video", frame_col)
+        cv2.imshow("Video", img)
 
         old_frame = frame.copy()
         p0 = good_new.reshape(-1, 1, 2)
