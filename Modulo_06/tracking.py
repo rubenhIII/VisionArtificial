@@ -1,94 +1,150 @@
 import cv2
 import numpy as np
 
-# Parametros para Lucas Kanade
-lk_params = dict( winSize  = (14, 14),
-                  maxLevel = 2,
-                  criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+# =========================
+# Parámetros
+# =========================
+lk_params = dict(
+    winSize=(15, 15),
+    maxLevel=3,
+    criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 20, 0.01)
+)
 
-# Parametros para el detector de esquinas
-feature_params = dict( maxCorners = 100,
-                       qualityLevel = 0.3,
-                       minDistance = 7,
-                       blockSize = 7)
+feature_params = dict(
+    maxCorners=200,
+    qualityLevel=0.2,
+    minDistance=5,
+    blockSize=7
+)
 
-# Crea paleta de colores para los puntos a trackear
-color = np.random.randint(0, 255, (100, 3))
+MAX_ERROR = 20
+MAX_DISPLACEMENT = 50  # control de drift
+MIN_POINTS_RATIO = 0.2
 
-def get_corners(img, corner_mask):
-    corners = cv2.goodFeaturesToTrack(img, mask = corner_mask, **feature_params)
-    return corners
+# =========================
+# Funciones
+# =========================
+def detect_features(gray, mask=None):
+    pts = cv2.goodFeaturesToTrack(gray, mask=mask, **feature_params)
+    if pts is not None:
+        pts = np.float32(pts)
+    return pts
 
-def draw_corners(img, corners):
-    for i in corners:
-        x,y = i.ravel()
-        cv2.circle(img,(x,y),10,255,-1)
+def filter_points(p0, p1, st, err):
+    """Filtrado robusto de puntos"""
+    if p1 is None or st is None or err is None:
+        return None, None
 
-# Captura desde archivo de video
-video = cv2.VideoCapture("img/robot.mp4")
-print("Oprime q para salir de la captura de video")
+    st = st.reshape(-1)
+    err = err.reshape(-1)
 
-while video.isOpened():
-    ret, old_frame = video.read()
-    old_frame = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
+    valid = (st == 1) & (err < MAX_ERROR)
 
-    mask = np.zeros_like(old_frame)
+    p0_valid = p0[valid]
+    p1_valid = p1[valid]
 
-    corner_mask = np.zeros_like(old_frame, dtype=np.uint8)
-    height, width = old_frame.shape
-    corner_mask[1*height//8:8*height//8, 1*width//10:9*width//10] = 255
+    # Control de drift (movimientos absurdos)
+    displacement = np.linalg.norm(p1_valid - p0_valid, axis=2).reshape(-1)
+    drift_mask = displacement < MAX_DISPLACEMENT
 
-    p0 = get_corners(old_frame, corner_mask)
+    return p0_valid[drift_mask], p1_valid[drift_mask]
 
-    while True:
-        ret, frame = video.read()
-        if not ret:
-            # Reproduce infinitamente el video: Optimizar
-            video = cv2.VideoCapture("img/robot.mp4")
-            ret, old_frame = video.read()
-            old_frame = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
-            mask = np.zeros_like(old_frame)
-            corner_mask = np.zeros_like(old_frame, dtype=np.uint8)
-            height, width = old_frame.shape
-            corner_mask[2*height//5:5*height//5, 1*width//10:9*width//10] = 255
-            p0 = get_corners(old_frame, corner_mask)
-            ret, frame = video.read()
+# =========================
+# Video
+# =========================
+video = cv2.VideoCapture("img/Traffic.mp4")
 
-            print("No hay frames por leer")
-            #break
+ret, old_frame = video.read()
+if not ret:
+    raise Exception("No se pudo leer el video")
 
-        frame_col = frame.copy()
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        # Calcula Optical Flow
-        p1, st, err = cv2.calcOpticalFlowPyrLK(old_frame, frame, p0, None, **lk_params)
-        # Seleccionar buenos puntos / esquinas
-        if p1 is not None:
-            good_new = p1[st==1 & (err < 10)]
-            good_old = p0[st==1 & (err < 10)]
+old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
 
-        # Dibujar el seguimiento
-        for i, (new, old) in enumerate(zip(good_new, good_old)):
-            a, b = new.ravel()
-            c, d = old.ravel()
-            mask = cv2.line(mask, (int(a), int(b)), (int(c), int(d)), color[i].tolist(), 2)
-            frame_col = cv2.circle(frame_col, (int(a), int(b)), 5, color[i].tolist(), -1)
-        
-        # img:  Imagen para debug: Mascara usada en la detección de esquinas o lineas de track
-        # frame_col: track de las esquinas con colores
-        img = cv2.add(frame, corner_mask)
-        cv2.imshow("Video", img)
+# Máscara completa (puedes cambiarla)
+corner_mask = np.ones_like(old_gray, dtype=np.uint8) * 255
 
-        old_frame = frame.copy()
-        p0 = good_new.reshape(-1, 1, 2)
+p0 = detect_features(old_gray, corner_mask)
 
-        # Re-detectar puntos si se pierden muchos (menos del 10%)
-        if len(p0) < feature_params['maxCorners'] * 0.10:
-            p0 = get_corners(old_frame, corner_mask)
-            mask = np.zeros_like(frame)  # Reinicia máscara
-        
-        if cv2.waitKey(30) & 0xFF == ord('q'):
-            break
-    break
+mask_draw = np.zeros_like(old_frame)
+colors = np.random.randint(0, 255, (1000, 3))
+
+print("Presiona 'q' para salir")
+
+while True:
+    ret, frame = video.read()
+
+    if not ret:
+        print("Reiniciando video...")
+        video.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        continue
+
+    frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    # =========================
+    # Optical Flow
+    # =========================
+    if p0 is not None and len(p0) > 0:
+        p1, st, err = cv2.calcOpticalFlowPyrLK(
+            old_gray, frame_gray, p0, None, **lk_params
+        )
+
+        good_old, good_new = filter_points(p0, p1, st, err)
+
+        if good_new is not None and len(good_new) > 0:
+
+            # =========================
+            # Dibujar trayectorias
+            # =========================
+            for i, (new, old) in enumerate(zip(good_new, good_old)):
+                a, b = new.ravel()
+                c, d = old.ravel()
+
+                mask_draw = cv2.line(mask_draw, (int(c), int(d)),
+                                     (int(a), int(b)),
+                                     colors[i % len(colors)].tolist(), 2)
+
+                frame = cv2.circle(frame, (int(a), int(b)), 4,
+                                   colors[i % len(colors)].tolist(), -1)
+
+            p0 = good_new.reshape(-1, 1, 2)
+
+        else:
+            p0 = None
+
+    # =========================
+    # Re-detección inteligente
+    # =========================
+    if p0 is None or len(p0) < feature_params['maxCorners'] * MIN_POINTS_RATIO:
+        print("Re-detectando puntos...")
+
+        new_pts = detect_features(frame_gray, corner_mask)
+
+        if new_pts is not None:
+            if p0 is not None:
+                p0 = np.concatenate((p0, new_pts), axis=0)
+            else:
+                p0 = new_pts
+
+        mask_draw = np.zeros_like(frame)
+
+    # =========================
+    # Visualización
+    # =========================
+    output = cv2.add(frame, mask_draw)
+
+    cv2.putText(output, f"Puntos activos: {0 if p0 is None else len(p0)}",
+                (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                (0, 255, 0), 2)
+
+    cv2.imshow("Optical Flow (Robusto)", output)
+
+    # =========================
+    # Actualización
+    # =========================
+    old_gray = frame_gray.copy()
+
+    if cv2.waitKey(30) & 0xFF == ord('q'):
+        break
 
 video.release()
 cv2.destroyAllWindows()
