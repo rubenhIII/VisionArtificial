@@ -52,7 +52,7 @@ def filter_points(p0, p1, st, err):
 # =========================
 # Video
 # =========================
-video = cv2.VideoCapture("img/Traffic.mp4")
+video = cv2.VideoCapture("img/robot.mp4")
 
 ret, old_frame = video.read()
 if not ret:
